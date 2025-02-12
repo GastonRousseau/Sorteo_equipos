@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sortear Grupos</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.8.1/font/bootstrap-icons.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
     <style>
@@ -147,6 +148,14 @@
 
         .animate-fade-in {
             animation: fadeIn 0.5s ease-out forwards;
+        }
+        textarea {
+            width: 100%;
+            height: 200px!important; /* Cambiar la altura a 150px */
+            resize: none;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            padding: 10px;
         }
         body {
             font-family: 'Roboto', sans-serif;
@@ -608,108 +617,200 @@
         document.getElementById("generateTournamentBtn").disabled = false;
     }
     function generateFootballFormation() {
-        let groupCount = parseInt(document.getElementById("groupCount").value);
-        if (groupCount !== 2) {
-            Swal.fire("Error", "El modo fútbol solo está disponible para 2 equipos.", "error");
-            return;
-        }
+    let groupCount = parseInt(document.getElementById("groupCount").value);
+    if (groupCount !== 2) {
+        Swal.fire("Error", "El modo fútbol solo está disponible para 2 equipos.", "error");
+        return;
+    }
 
-        let names = document.getElementById("names").value.split("\n").map(name => name.trim()).filter(name => name !== "");
-        if (names.length < 2) {
-            Swal.fire("Error", "Se necesitan al menos 2 jugadores para generar equipos.", "error");
-            return;
-        }
+    let names = document.getElementById("names").value.split("\n").map(name => name.trim()).filter(name => name !== "");
+    if (names.length < 2) {
+        Swal.fire("Error", "Se necesitan al menos 2 jugadores para generar equipos.", "error");
+        return;
+    }
 
-        shuffleArray(names);
-        window.team1 = []; // Hacemos los equipos globales
-        window.team2 = [];
-        
-        // Asignar capitanes
-        window.team1.push(`${names[0]} (C)`);
-        window.team2.push(`${names[1]} (C)`);
-        
-        // Distribuir resto de jugadores
-        for (let i = 2; i < names.length; i++) {
-            if (i % 2 === 0) {
-                window.team1.push(names[i]);
-            } else {
-                window.team2.push(names[i]);
-            }
+    shuffleArray(names);
+    window.team1 = []; // Hacemos los equipos globales
+    window.team2 = [];
+    window.team1Name = "Equipo Local";
+    window.team2Name = "Equipo Visitante";
+    
+    // Asignar capitanes
+    window.team1.push(`${names[0]} (C)`);
+    window.team2.push(`${names[1]} (C)`);
+    
+    // Distribuir resto de jugadores
+    for (let i = 2; i < names.length; i++) {
+        if (i % 2 === 0) {
+            window.team1.push(names[i]);
+        } else {
+            window.team2.push(names[i]);
         }
+    }
 
-        let outputDiv = document.getElementById("output");
-        outputDiv.innerHTML = `
-            <div class="football-field">
-                <div class="team-column">
-                    <h4>Equipo Local</h4>
-                    ${window.team1.map(name => `<div class="mb-2">${name}</div>`).join('')}
+    let outputDiv = document.getElementById("output");
+    outputDiv.innerHTML = `
+        <div class="football-field">
+            <div class="team-column">
+                <div class="d-flex align-items-center mb-2">
+                    <input type="text" 
+                           class="form-control group-name-input" 
+                           value="${window.team1Name}" 
+                           id="team-name-0"
+                           style="max-width: 200px; font-weight: bold;">
+                    <button class="btn btn-outline-primary btn-sm ms-2 p-1" 
+                            onclick="saveTeamName(0)">
+                        <i class="bi bi-check-lg"></i>
+                    </button>
                 </div>
-                <div class="team-column">
-                    <h4>Equipo Visitante</h4>
-                    ${window.team2.map(name => `<div class="mb-2">${name}</div>`).join('')}
-                </div>
+                ${window.team1.map(name => `<div class="mb-2">${name}</div>`).join('')}
             </div>
-            <button class="btn btn-success mt-3" onclick="simulateMatch()">
-                Simular Partido
-            </button>`;
-        outputDiv.style.display = "block";
+            <div class="team-column">
+                <div class="d-flex align-items-center mb-2">
+                    <input type="text" 
+                           class="form-control group-name-input" 
+                           value="${window.team2Name}" 
+                           id="team-name-1"
+                           style="max-width: 200px; font-weight: bold;">
+                    <button class="btn btn-outline-primary btn-sm ms-2 p-1" 
+                            onclick="saveTeamName(1)">
+                        <i class="bi bi-check-lg"></i>
+                    </button>
+                </div>
+                ${window.team2.map(name => `<div class="mb-2">${name}</div>`).join('')}
+            </div>
+        </div>
+        <button class="btn btn-success mt-3" onclick="simulateMatch()">
+            Simular Partido
+        </button>`;
+    outputDiv.style.display = "block";
+}
+
+
+function simulateMatch() {
+    // Obtener los equipos
+    const team1 = window.team1.map(name => name.replace(' (C)', ''));
+    const team2 = window.team2.map(name => name.replace(' (C)', ''));
+
+    // Generar resultado aleatorio
+    const team1Goals = Math.floor(Math.random() * 4) + 1; // 1-4 goles
+    const team2Goals = Math.floor(Math.random() * 4) + 1; // 1-4 goles
+
+    // Generar goleadores
+    let team1Scorers = {};
+    let team2Scorers = {};
+
+    // Distribuir goles equipo 1
+    for (let i = 0; i < team1Goals; i++) {
+        const scorer = team1[Math.floor(Math.random() * team1.length)];
+        team1Scorers[scorer] = (team1Scorers[scorer] || 0) + 1;
     }
 
-
-    function simulateMatch() {
-        // Obtener los equipos
-        const team1 = window.team1.map(name => name.replace(' (C)', ''));
-        const team2 = window.team2.map(name => name.replace(' (C)', ''));
-
-        // Generar resultado aleatorio
-        const team1Goals = Math.floor(Math.random() * 4) + 1; // 1-4 goles
-        const team2Goals = Math.floor(Math.random() * 4) + 1; // 1-4 goles
-
-        // Generar goleadores
-        let team1Scorers = {};
-        let team2Scorers = {};
-
-        // Distribuir goles equipo 1
-        for (let i = 0; i < team1Goals; i++) {
-            const scorer = team1[Math.floor(Math.random() * team1.length)];
-            team1Scorers[scorer] = (team1Scorers[scorer] || 0) + 1;
-        }
-
-        // Distribuir goles equipo 2
-        for (let i = 0; i < team2Goals; i++) {
-            const scorer = team2[Math.floor(Math.random() * team2.length)];
-            team2Scorers[scorer] = (team2Scorers[scorer] || 0) + 1;
-        }
-
-        // Crear resumen de goleadores
-        function formatScorers(scorers) {
-            return Object.entries(scorers)
-                .map(([name, goals]) => `${name}${goals > 1 ? ` x${goals}` : ''}`)
-                .join(', ');
-        }
-
-        // Crear HTML para la simulación
-        let simulationHTML = `
-            <div class="match-simulation mt-4 p-4 border rounded">
-                <h3 class="text-center mb-4">Resultado Final</h3>
-                <div class="score-display text-center mb-4">
-                    <strong>Equipo Local ${team1Goals} - ${team2Goals} Equipo Visitante</strong>
-                </div>
-                <div class="goals-summary">
-                    <p><strong>Goles Equipo Local:</strong> ${formatScorers(team1Scorers)}</p>
-                    <p><strong>Goles Equipo Visitante:</strong> ${formatScorers(team2Scorers)}</p>
-                </div>
-                ${generateMatchSummary(team1Goals, team2Goals)}
-            </div>`;
-
-        // Agregar la simulación al DOM
-        let matchSimulationDiv = document.createElement('div');
-        matchSimulationDiv.innerHTML = simulationHTML;
-        document.getElementById('output').appendChild(matchSimulationDiv);
-
-        // Scroll hasta la simulación
-        matchSimulationDiv.scrollIntoView({ behavior: 'smooth' });
+    // Distribuir goles equipo 2
+    for (let i = 0; i < team2Goals; i++) {
+        const scorer = team2[Math.floor(Math.random() * team2.length)];
+        team2Scorers[scorer] = (team2Scorers[scorer] || 0) + 1;
     }
+
+    // Crear resumen de goleadores
+    function formatScorers(scorers) {
+        return Object.entries(scorers)
+            .map(([name, goals]) => `${name}${goals > 1 ? ` x${goals}` : ''}`)
+            .join(', ');
+    }
+
+    // Crear HTML para la simulación
+    let simulationHTML = `
+        <div class="match-simulation mt-4 p-4 border rounded">
+            <h3 class="text-center mb-4">Resultado Final</h3>
+            <div class="score-display text-center mb-4">
+                <strong>${window.team1Name} ${team1Goals} - ${team2Goals} ${window.team2Name}</strong>
+            </div>
+            <div class="goals-summary">
+                <p><strong>Goles ${window.team1Name}:</strong> ${formatScorers(team1Scorers)}</p>
+                <p><strong>Goles ${window.team2Name}:</strong> ${formatScorers(team2Scorers)}</p>
+            </div>
+            ${generateMatchSummary(team1Goals, team2Goals)}
+            <button class="btn btn-info mt-3" onclick="showStatistics(${team1Goals}, ${team2Goals})">
+                Ver Estadísticas
+            </button>
+        </div>`;
+
+    // Agregar la simulación al DOM
+    let matchSimulationDiv = document.createElement('div');
+    matchSimulationDiv.innerHTML = simulationHTML;
+    document.getElementById('output').appendChild(matchSimulationDiv);
+
+    // Scroll hasta la simulación
+    matchSimulationDiv.scrollIntoView({ behavior: 'smooth' });
+}
+
+function showStatistics(team1Goals, team2Goals) {
+    // Generar estadísticas aleatorias
+    const team1Possession = Math.floor(Math.random() * 51) + 50; // 50-100%
+    const team2Possession = 100 - team1Possession;
+    const team1Shots = Math.floor(Math.random() * 10) + 5; // 5-15 tiros
+    const team2Shots = Math.floor(Math.random() * 10) + 5; // 5-15 tiros
+    const team1Passes = Math.floor(Math.random() * 200) + 300; // 300-500 pases
+    const team2Passes = Math.floor(Math.random() * 200) + 300; // 300-500 pases
+    const team1YellowCards = Math.floor(Math.random() * 3); // 0-2 amarillas
+    const team2YellowCards = Math.floor(Math.random() * 3); // 0-2 amarillas
+    const team1RedCards = Math.floor(Math.random() * 2); // 0-1 expulsiones
+    const team2RedCards = Math.floor(Math.random() * 2); // 0-1 expulsiones
+
+    // Crear HTML para las estadísticas
+    let statisticsHTML = `
+        <div class="match-statistics mt-4 p-4 border rounded">
+            <h3 class="text-center mb-4">Estadísticas del Partido</h3>
+            <div class="statistics-summary">
+                <p><strong>Posesión:</strong> ${window.team1Name} ${team1Possession}% - ${team2Possession}% ${window.team2Name}</p>
+                <p><strong>Tiros al arco:</strong> ${window.team1Name} ${team1Shots} - ${team2Shots} ${window.team2Name}</p>
+                <p><strong>Total de pases:</strong> ${window.team1Name} ${team1Passes} - ${team2Passes} ${window.team2Name}</p>
+                <p><strong>Tarjetas amarillas:</strong> ${window.team1Name} ${team1YellowCards} - ${team2YellowCards} ${window.team2Name}</p>
+                <p><strong>Tarjetas rojas:</strong> ${window.team1Name} ${team1RedCards} - ${team2RedCards} ${window.team2Name}</p>
+            </div>
+        </div>`;
+
+    // Agregar las estadísticas al DOM
+    let statisticsDiv = document.createElement('div');
+    statisticsDiv.innerHTML = statisticsHTML;
+    document.getElementById('output').appendChild(statisticsDiv);
+
+    // Scroll hasta las estadísticas
+    statisticsDiv.scrollIntoView({ behavior: 'smooth' });
+}
+
+    function saveTeamName(teamIndex) {
+    const input = document.getElementById(`team-name-${teamIndex}`);
+    const newName = input.value.trim();
+
+    if (newName === '') {
+        Swal.fire({
+            title: "Error",
+            text: "El nombre del equipo no puede estar vacío",
+            icon: "error",
+            confirmButtonColor: '#4f46e5'
+        });
+        input.value = `Equipo ${teamIndex === 0 ? 'Local' : 'Visitante'}`;
+        return;
+    }
+
+    Swal.fire({
+        title: "¡Guardado!",
+        text: `El equipo ha sido renombrado a "${newName}"`,
+        icon: "success",
+        confirmButtonColor: '#4f46e5',
+        timer: 1500,
+        showConfirmButton: false
+    });
+
+    // Actualizar el nombre del equipo en el array de equipos
+    if (teamIndex === 0) {
+        window.team1Name = newName;
+    } else {
+        window.team2Name = newName;
+    }
+}
 
     function generateMatchSummary(team1Goals, team2Goals) {
         let summary = '<div class="match-summary mt-3">';
